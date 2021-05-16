@@ -4,7 +4,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Optional;
 import java.util.Scanner;
 
 public class ClientHandler {
@@ -15,10 +14,6 @@ public class ClientHandler {
     private DataOutputStream outputStream;
 
     private String name;
-
-    public String getName() {
-        return name;
-    }
 
     public ClientHandler(Socket socket, String name) {
         try {
@@ -38,9 +33,7 @@ public class ClientHandler {
 
             }).start();
 
-            new Thread(() -> {
-                sendMsg();
-            }).start();
+            new Thread(this::sendMsg).start();
 
         } catch (IOException ex) {
             System.out.println("Проблема при создании клиента");
@@ -76,16 +69,6 @@ public class ClientHandler {
     }
 
     public void closeConnection() {
-        /*try {
-            inputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
-            inputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
         try {
             inputStream.close();
         } catch (IOException e) {

@@ -11,12 +11,15 @@ public class EchoServer {
             System.out.println("Сервер запущен, ожидаем подключения...");
             Socket socket = serverSocket.accept();
             System.out.println("Клиент подключился!");
-
-            new ClientHandler(socket, "Сервер");
+            new ClientHandler(this, socket);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+    }
+
+    public String getName() {
+        return "Сервер";
     }
 
     public static void main(String[] args) {

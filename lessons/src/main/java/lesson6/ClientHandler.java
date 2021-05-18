@@ -4,28 +4,30 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Scanner;
 
 public class ClientHandler {
 
     private Socket socket;
-    private Scanner input;
+    private final Scanner input= new Scanner(System.in);
     private DataInputStream inputStream;
     private DataOutputStream outputStream;
 
-    private String name;
+    private String serverName;
 
-    public ClientHandler(Socket socket, String name) {
+    public ClientHandler(EchoServer server,Socket socket) {
         try {
             this.socket = socket;
-            this.input = new Scanner(System.in);
             this.inputStream = new DataInputStream(socket.getInputStream());
             this.outputStream = new DataOutputStream(socket.getOutputStream());
-            this.name = name;
+            this.serverName = server.getName();
             new Thread(() -> {
                 try {
                     readMessages();
-                } catch (IOException e) {
+                } catch (SocketException e) {
+                    System.out.println("Соединение разорвано, поток на чтение закрыт.");
+                }catch (IOException e) {
                     e.printStackTrace();
                 } finally {
                     closeConnection();
@@ -45,6 +47,7 @@ public class ClientHandler {
             String messageFromClient = inputStream.readUTF();
             System.out.println(messageFromClient);
             if (messageFromClient.contains(EchoConstants.STOP_WORD)) {
+                closeConnection();
                 return;
             }
         }
@@ -56,13 +59,16 @@ public class ClientHandler {
             if (input.hasNext()) {
                 String message = input.next();
                 try {
-                    outputStream.writeUTF("От " + name + ": " + message);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                if (message.equals(EchoConstants.STOP_WORD)) {
+                    outputStream.writeUTF("От " + serverName + ": " + message);
+                    if (message.equals(EchoConstants.STOP_WORD)) {
+                        closeConnection();
+                        return;
+                    }
+                }  catch (SocketException e) {
+                    System.out.println("Клиент уже отключен, работа сервера будет завершена.");
                     return;
+                }catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         }

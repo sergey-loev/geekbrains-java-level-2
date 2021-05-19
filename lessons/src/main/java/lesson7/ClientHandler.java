@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -54,12 +55,22 @@ public class ClientHandler {
                 return;
             } else if (messageFromClient.startsWith(ChatConstants.SEND_TO_LIST)) {
                 String[] splittedStr = messageFromClient.split("\\s+");
-                List<String> nicknames = new ArrayList<>();
-                for (int i = 1; i < splittedStr.length - 1; i++) {
-                    nicknames.add(splittedStr[i]);
-                }
+                List<String> nicknames = new ArrayList<>(Arrays.asList(splittedStr).subList(1, splittedStr.length - 1));
+                server.broadcastMessageToClients(messageFromClient, nicknames);
             } else if (messageFromClient.startsWith(ChatConstants.CLIENTS_LIST)) {
                 server.broadcastClients();
+            }  else if (messageFromClient.startsWith(ChatConstants.PRIVATE_MESSAGE)) {
+                String[] splitStr = messageFromClient.split("\\s+");
+                List<String> nicknames = new ArrayList<>();
+                nicknames.add(splitStr[1]);
+                String[] splitStrMsg = new String[splitStr.length-2];
+                System.arraycopy(splitStr, 2, splitStrMsg, 0,splitStr.length-2);
+                StringBuilder builder = new StringBuilder();
+                for(String s : splitStrMsg) {
+                    builder.append(s).append(" ");
+                }
+                String privatMessageToClient = builder.toString();
+                server.broadcastMessageToClients(privatMessageToClient, nicknames);
             } else {
                 server.broadcastMessage("[" + name + "]: " + messageFromClient);
             }

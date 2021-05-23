@@ -7,6 +7,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketException;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -27,6 +28,7 @@ public class ChatClient extends JFrame{
 
     private DataInputStream inputStream;
     private DataOutputStream outputStream;
+    private boolean authOk = false;
 
     public ChatClient() {
         try {
@@ -46,12 +48,18 @@ public class ChatClient extends JFrame{
             try {
                 //auth
                 while (true) {
-                    String strFromServer = inputStream.readUTF();
-                    if (strFromServer.equals(ChatConstants.AUTH_OK)) {
+                    try {
+                        String strFromServer = inputStream.readUTF();
+                        if (strFromServer.equals(ChatConstants.AUTH_OK)) {
+                            authOk=true;
+                            break;
+                        }
+                        chatArea.append(strFromServer);
+                        chatArea.append("\n");
+                    }catch (SocketException ex) {
+                        chatArea.append("Соединение с сервером не установлено.");
                         break;
                     }
-                    chatArea.append(strFromServer);
-                    chatArea.append("\n");
                 }
                 //read
                 while (true) {
@@ -65,9 +73,24 @@ public class ChatClient extends JFrame{
                     }
                     chatArea.append("\n");
                 }
-            } catch (IOException ex) {
+            }  catch (SocketException ex) {
+                chatArea.append("Соединение с сервером не установлено.");
+            }catch (IOException ex) {
                 ex.printStackTrace();
             }
+        }).start();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(120000);
+                if(!authOk){
+                    closeConnection();
+                    chatArea.append("Отключение от сервера, по причине истечения времени ожидания авторизации.");
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
         }).start();
     }
 
@@ -122,7 +145,10 @@ public class ChatClient extends JFrame{
                 try {
                     outputStream.writeUTF(ChatConstants.STOP_WORD);
                     closeConnection();
-                } catch (IOException ex) {
+                }
+                catch (SocketException ex) {
+                    chatArea.append("Соединение с сервером не установлено.");
+                }catch (IOException ex) {
                     ex.printStackTrace();
                 }
             }
@@ -138,7 +164,9 @@ public class ChatClient extends JFrame{
                 outputStream.writeUTF(inputField.getText());
                 inputField.setText("");
                 inputField.grabFocus();
-            } catch (IOException e) {
+            } catch (SocketException e) {
+                chatArea.append("Соединение с сервером не установлено.");
+            }catch (IOException e) {
                 e.printStackTrace();
                 JOptionPane.showMessageDialog(null, "Send error occurred");
             }
